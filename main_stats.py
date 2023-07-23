@@ -50,11 +50,12 @@ yellow  = [255/255, 176/255, 0/255]
 
 plt.rcParams.update({'font.sans-serif': 'Arial', 'lines.linewidth':1, 'lines.color':'k'})
 
-os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\COMPILATION\Functions')
-from fractionOfRecovery import fractionRecovery, corrRec, fractionRecovery_wTime, behaviorBL
-from basicFunctions     import ttest, sigStar, plotLR
+os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Functions')
+#from fractionOfRecovery import getAdaptation, corrRec, fractionRecovery_wTime, behaviorBL
+from behavioralMetric_fxns import getAdaptation, behaviorBL
+from basicFunctions     import ttest, sigStar#, plotLR
 
-
+#%%
 'Adjustable Parameters'
 c1 = magenta
 c2 = yellow
@@ -83,13 +84,13 @@ _______________________________________________________________
 
 ________________________________________________________________
 """
-os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\COMPILATION\Pickles')
-fn = glob.glob('*_FA_loadings_40sets.pkl')
+os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
+fn = glob.glob('*_FA_loadings_40sets_noTC.pkl')
 open_file = open(fn[0], "rb")
 Aev = pickle.load(open_file)
 open_file.close()
 
-fn = glob.glob('*_FA_loadings_40sets.pkl')
+fn = glob.glob('*_FA_loadings_40sets_noTC.pkl')
 open_file = open(fn[1], "rb")
 Bev = pickle.load(open_file)
 open_file.close()
@@ -103,6 +104,31 @@ Bdegs = [dDegs[d] for d in Bev[0]]
 
 
 
+# """
+# ______________________________________________________________________________
+
+# Fraction of ADAPTATION & Single Unit Communality Over Time (sets)
+# ______________________________________________________________________________
+# """
+
+# 'Behavior - BASELINE'
+# BL_behavior = {}
+# for Sev in [Aev, Bev]:
+#     subject = Sev[-1]
+#     BL_behavior[subject] = behaviorBL(Sev)
+
+# 'Behavior - ADAPTATION'
+# rec   = {}
+# dfRec = {}
+# # dC    = {}
+# # dVar  = {}
+
+# for Sev in [Aev, Bev]:
+#     S = Sev[-1]
+#     rec[S], dfRec[S] = fractionRecovery(Sev, returnMag=False)
+#     #rec[subject], dfRec[subject], dC[subject], dVar[subject] = corrRec(Sev)
+
+
 """
 ______________________________________________________________________________
 
@@ -112,21 +138,54 @@ ______________________________________________________________________________
 
 'Behavior - BASELINE'
 BL_behavior = {}
-for Sev in [Aev, Bev]:
-    subject = Sev[-1]
+for Sev, subject in zip([Aev, Bev], ['Subject A', 'Subject B']):
     BL_behavior[subject] = behaviorBL(Sev)
 
+#%%
+from statsmodels.stats.power import TTestIndPower
+alpha = 0.05
+
+timeA = np.array([np.mean(BL_behavior['Subject A'][d]['time']) for d in range(63)])
+distA = np.array([np.mean(BL_behavior['Subject A'][d]['dist']) for d in range(63)])
+timeB = np.array([np.mean(BL_behavior['Subject B'][d]['time']) for d in range(57)])
+distB = np.array([np.mean(BL_behavior['Subject B'][d]['dist']) for d in range(57)])
+
+ind50A = dComp['Subject A']['b_ind50']
+ind90A = dComp['Subject A']['b_ind90']
+ind50B = dComp['Subject B']['b_ind50']
+ind90B = dComp['Subject B']['b_ind90']
+
+print('Monkey A')
+F1 = np.var(timeA[ind50A],ddof=1) / np.var(timeA[ind90A],ddof=1)
+t, p = stats.ttest_ind(timeA[ind50A], timeA[ind90A], equal_var=True)
+print('\tMean Baseline Time: {:.3f} ({:.2e}) (F={:.3f})'.format(t,p,F1))
+
+
+power = TTestIndPower()
+power1 = power.solve_power(power=None, effect_size=t, alpha=alpha, nobs1=len(ind90A), ratio=len(ind50A)/len(ind90A), alternative='two-sided')
+
+F2 = np.var(distA[ind90A],ddof=1) / np.var(distA[ind50A],ddof=1)
+t, p = stats.ttest_ind(distA[ind50A], distA[ind90A], equal_var=False)
+print('\tMean Baseline Dist: {:.3f} ({:.2e}) (F={:.3f})'.format(t,p, F2))
+
+print('Monkey B')
+F3 = np.var(timeB[ind50B],ddof=1) / np.var(timeB[ind90B],ddof=1)
+t, p = stats.ttest_ind(timeA[ind50B], timeA[ind90B], equal_var=False)
+print('\tMean Baseline Time: {:.3f} ({:.2e}) (F={:.3f})'.format(t,p, F3))
+F4 = np.var(distB[ind50B],ddof=1) / np.var(distB[ind90B],ddof=1)
+t, p = stats.ttest_ind(distA[ind50B], distA[ind90B], equal_var=False)
+print('\tMean Baseline Dist: {:.3f} ({:.2e}) (F={:.3f})'.format(t,p, F4))
+
+
+
+#%%
+
 'Behavior - ADAPTATION'
-rec   = {}
-dfRec = {}
-# dC    = {}
-# dVar  = {}
+adt   = {}
+dfADT = {}
 
-for Sev in [Aev, Bev]:
-    S = Sev[-1]
-    rec[S], dfRec[S] = fractionRecovery(Sev, returnMag=False)
-    #rec[subject], dfRec[subject], dC[subject], dVar[subject] = corrRec(Sev)
-
+for Sev, subject in zip([Aev, Bev], ['Subject A', 'Subject B']):
+    adt[subject], dfADT[subject] = getAdaptation(Sev)
 
 
 
@@ -148,10 +207,10 @@ for S, Sev, degs  in zip(subject_list, [Aev, Bev], [Adegs, Bdegs]):
     for d in range(len(Sev[1])):
         
         'Assuming the total variance for each unit sums to 1.'
-        sBL = [  np.sum(Sev[3][d]['BL']['loadings'][i]**2, axis=0) for i in range(40)]
-        pBL = [1-np.sum(Sev[3][d]['BL']['loadings'][i]**2, axis=0) for i in range(40)]
-        sPE = [  np.sum(Sev[3][d]['PE']['loadings'][i]**2, axis=0) for i in range(40)]
-        pPE = [1-np.sum(Sev[3][d]['PE']['loadings'][i]**2, axis=0) for i in range(40)]
+        sBL = [  np.sum(Sev[2][d]['BL']['loadings'][i]**2, axis=0) for i in range(40)]
+        pBL = [1-np.sum(Sev[2][d]['BL']['loadings'][i]**2, axis=0) for i in range(40)]
+        sPE = [  np.sum(Sev[2][d]['PE']['loadings'][i]**2, axis=0) for i in range(40)]
+        pPE = [1-np.sum(Sev[2][d]['PE']['loadings'][i]**2, axis=0) for i in range(40)]
             
         dS[S]['sBL'].append(np.mean(sBL, axis=1))
         dS[S]['sPE'].append(np.mean(sPE, axis=1))
@@ -172,8 +231,6 @@ for S, degs in zip(subject_list, [Adegs, Bdegs]):
     dComp[S]['b_ind50'] = dfIndDeg.loc[dfIndDeg['deg']==50, 'ind'].values.tolist()
     dComp[S]['b_ind90'] = dfIndDeg.loc[dfIndDeg['deg']==90, 'ind'].values.tolist()
     
-
-    
     if S == 'Subject B':
         ind_ = ind
         degs_ = degs
@@ -189,19 +246,32 @@ for S, degs in zip(subject_list, [Adegs, Bdegs]):
     dComp[S]['s_ind90'] = dfIndDeg.loc[dfIndDeg['deg']==90, 'ind'].values
 
     'Behavior'
-    maxIND = np.array(dfRec[S]['indMR'].values.tolist())
-    ID     = np.array(dfRec[S]['ID'].values)#np.multiply(-1,dfRec[S]['ID'].values)
-    IR     = np.array(dfRec[S]['IR'].values)
-    MR     = np.array(dfRec[S]['MR'].values)
+    # maxIND = np.array(dfRec[S]['indMR'].values.tolist())
+    # ID     = np.array(dfRec[S]['ID'].values)#np.multiply(-1,dfRec[S]['ID'].values)
+    # IR     = np.array(dfRec[S]['IR'].values)
+    # MR     = np.array(dfRec[S]['MR'].values)
+    # n      = len(maxIND)
+    # recS   = np.array([rec[S][i] for i in range(n)]).reshape((n,40))
+     
+    # dComp[S]['maxIND']  = maxIND
+    # dComp[S]['bID']     = ID
+    # dComp[S]['bIR']     = IR
+    # dComp[S]['bMR']     = MR
+    # dComp[S]['rec']     = recS
+    
+    'Behavior'
+    maxIND = np.array(dfADT[S]['indMR'].values.tolist())
+    ID     = np.array(dfADT[S]['ID'].values)
+    IR     = np.array(dfADT[S]['IR'].values)
+    MR     = np.array(dfADT[S]['MR'].values)
     n      = len(maxIND)
-    recS   = np.array([rec[S][i] for i in range(n)]).reshape((n,40))
+    adtS   = np.array([adt[S][i] for i in range(n)]).reshape((n,40))
      
     dComp[S]['maxIND']  = maxIND
     dComp[S]['bID']     = ID
     dComp[S]['bIR']     = IR
     dComp[S]['bMR']     = MR
-    dComp[S]['rec']     = recS
-    
+    dComp[S]['rec']     = adtS
 
     'SV - Shared Variance'
     sBL  = np.array(dS[S]['sBL'])
@@ -216,6 +286,23 @@ for S, degs in zip(subject_list, [Adegs, Bdegs]):
     dComp[S]['sMR'] = np.array([sPE[i][maxIND[i]] for i in range(len(maxIND))])    
 
 
+
+#%%
+
+for S in subject_list:
+    
+    ind50 = dComp[S]['b_ind50']
+    ind90 = dComp[S]['b_ind90']
+    
+    a50 = np.array(dComp[S]['bMR'][ind50])
+    a90 = np.array(dComp[S]['bMR'][ind90])
+    
+    g50 = len(np.where(a50 >= 0)[0])
+    g90 = len(np.where(a90 >= 0)[0])
+    
+    print(S)
+    print('\t50: {:.1f} / {:.1f}'.format(g50, len(ind50)))
+    print('\t50: {:.1f} / {:.1f}'.format(g90, len(ind90)))
 
 #%%
 
@@ -541,13 +628,13 @@ ___________________________
     #          [0]   [1]    [2]  [3]  [4]     [5]    [6]           
     #   Sev =  degs, dates, dTC, dEV, dTimes, dDist, subject
 
-nUnits_A = np.array([np.shape(Aev[3][d]['PE']['loadings'])[-1] for d in range(63)])
-nUnits_B = np.array([np.shape(Bev[3][d]['PE']['loadings'])[-1] for d in range(57)])
+nUnits_A = np.array([np.shape(Aev[2][d]['PE']['loadings'])[-1] for d in range(63)])
+nUnits_B = np.array([np.shape(Bev[2][d]['PE']['loadings'])[-1] for d in range(57)])
 
 
 for S, Sev in zip(subject_list, [Aev, Bev]):
     
-    nUnits = np.array([np.shape(Sev[3][d]['PE']['loadings'])[-1] for d in range(len(Sev[0]))])
+    nUnits = np.array([np.shape(Sev[2][d]['PE']['loadings'])[-1] for d in range(len(Sev[0]))])
     
     degs = np.abs(dComp[S]['b_degs'])
     inds = dComp[S]['s_ind']
@@ -572,20 +659,19 @@ for S, Sev in zip(subject_list, [Aev, Bev]):
     F1,p1 = Ftest(v50, v90)
     F2,p2 = Ftest(v90, v50)
     
-    print('\t50: {:.4f} ({:.4f}), 90: {:.4f} ({:.4f})'.format(F1, p1, F2, p2))
+    #print('\t50: {:.4f} ({:.4f}), 90: {:.4f} ({:.4f})'.format(F1, p1, F2, p2))
 
     if (F1 > 3) or (F2 > 3):
         equal_var=False
     else:
         equal_var=True
     
-    print('\t',equal_var)
 
     t, p = stats.ttest_ind(v50, v90, equal_var=equal_var)
-    print('\t{:.4f}'.format(p))
+    print('\t t={:.4f} ({:.2e}) (equal_var? {})'.format(t,p, equal_var))
           
 
-    print('\n{}, {}'.format(np.sum(v50), np.sum(v90)))
+   #print('\n{}, {}'.format(np.sum(v50), np.sum(v90)))
 
 #%%
 
@@ -635,14 +721,19 @@ for S in subject_list:
            # print('F-test: REJECT NULL - {} - {} - {:.4f} or {:.4f}'.format(S,k,F1,F2))
         else:
             equal_var = True
+        
+        #print(equal_var)
             
     
         # if (S=='Subject A') and (k=='bIR'):
         #     ttest(v1,v2,equal_var=equal_var)
     
         #print('Equal Var?: ', S, k, equal_var)
-        'Two-Sample, One-Sided t-test'
-        t, p = stats.ttest_ind(v1,v2,equal_var=equal_var, alternative='greater')
+        #'Two-Sample, One-Sided t-test'
+        #t, p = stats.ttest_ind(v1,v2,equal_var=equal_var, alternative='greater')
+        
+        'Two-Sample, Two-Sided t-test'
+        t, p = stats.ttest_ind(v1,v2,equal_var=equal_var, alternative='two-sided')
         dT[S][k]['t'] = t
         dT[S][k]['p'] = p
         
@@ -705,30 +796,32 @@ print('________________\n')
 for S in subject_list:
     print(S)
     for k in ['bID', 'bIR', 'bMR']:
-        print('\t{} -  F1: {:.4f}  ({:.4e})'.format(k, dF[S][k]['F1'], dF[S][k]['p1']) )
-        print('\t\t{} -  F2: {:.4f}  ({:.4e})'.format(k, dF[S][k]['F2'], dF[S][k]['p2']) )
+        if dF[S][k]['F1'] > 1:
+            print('\t{} -  F: {:.4f}  ({:.4e})'.format(k, dF[S][k]['F1'], dF[S][k]['p1']) )
+        else:
+            print('\t\t{} -  F: {:.4f}  ({:.4e})'.format(k, dF[S][k]['F2'], dF[S][k]['p2']) )
 
 print('_______________________________________________________\n')
-print('50 v 90 - AT EACH TIMEPOINT - ONE -SIDED (alt=greater):')
+print('50 v 90 - AT EACH TIMEPOINT - TWO -SIDED (alt="two-sided"):')
 print('_______________________________________________________\n')
 for S in subject_list:
     print(S)
     for k in ['bID', 'bIR', 'bMR']:
         print('\t'+k)
         print('\t\tt: {:.4f}  ({:.4e})'.format(dT[S][k]['t'], dT[S][k]['p']) )
-        print('\t\tES: {:.4f}  ({:.4f}, {:.4f})'.format(dT[S][k]['ES'], dT[S][k]['CI'][0], dT[S][k]['CI'][1]))
+        #print('\t\tES: {:.4f}  ({:.4f}, {:.4f})'.format(dT[S][k]['ES'], dT[S][k]['CI'][0], dT[S][k]['CI'][1]))
 
 print('____________________\n')
-print('50 v 90 - v 0(BL):')
+print('50 or 90 v 0(BL):')
 print('____________________\n')
 
 for S in subject_list:
     print(S)
-    for k in ['two-sided', 'less', 'greater']:
+    for k in ['two-sided']:#, 'less', 'greater']:
         print('\t'+k)
-        print('\t\t50: {:.4f} ({:.4e})'.format( dTmax[S][k]['50']['t'], dTmax[S][k]['50']['p']) )
-        print('\t\t90: {:.4f} ({:.4e})'.format( dTmax[S][k]['90']['t'], dTmax[S][k]['90']['p']) )
-    print('\t\t\t50 v 90: {:.4f} ({:.4e})'.format( dTmax[S]['greater']['50v90']['t'], dTmax[S]['greater']['50v90']['p']) )
+        print('\t\t50 vs 0: {:.4f} ({:.4e})'.format( dTmax[S][k]['50']['t'], dTmax[S][k]['50']['p']) )
+        print('\t\t90 vs 0: {:.4f} ({:.4e})'.format( dTmax[S][k]['90']['t'], dTmax[S][k]['90']['p']) )
+    #print('\t\t\t50 v 90: {:.4f} ({:.4e})'.format( dTmax[S]['greater']['50v90']['t'], dTmax[S]['greater']['50v90']['p']) )
 
 
 
@@ -767,6 +860,7 @@ for S in subject_list:
 #     print(t,p)
 
 #%%
+
 
 """
 _____________________
@@ -810,6 +904,15 @@ for S in subject_list:
         print('\n')
         
 
+# df.to_excel('my_dataframe.xlsx')
+
+# import csv
+
+# with open('my_file2.csv', 'w', newline='') as csvfile:
+    
+#   for i,j,k in zip(df.sv, df.deg, df.tp):
+#       writer = csv.writer(csvfile)
+#       writer.writerow([i,j,k])
 
 
 
@@ -853,11 +956,11 @@ for S in subject_list:
     N = len(ind50)*4 + len(ind90)*4  #total number of observations
     n50 = len(ind50) #number of observations (per comparison) - group 1 
     n90 = len(ind90) #number of observations (per comparison) - group 2
-    k = 8 #number of cell means?...but adjust?
+    k = 8 #number of cell means (unadjusted)
     dfw = N - k
+
     
-    _, qcrit = studentized_range.ppf([0,1-alpha], k=k, df=dfw) #alpha/2????
-    
+    _, qcrit = studentized_range.ppf([alpha/2,1-alpha/2], k=k, df=dfw) #two-sided alternative
     
     observations = [BL50, ID50, IR50, MR50, BL90, ID90, IR90, MR90]
     
@@ -920,7 +1023,7 @@ for S in subject_list:
         
         #tcrit = qcrit/np.sqrt(2)
         
-        print('\t\t{} - {}: qcrit = {:.4f}, qtest = {:.4f} (P={:.4f})'.format(k1, k2,qcrit, qtest, p))
+        print('\t\t{} - {}: qcrit = {:.4f}, qtest = {:.4f} (P={:.4e})'.format(k1, k2,qcrit, qtest, p))
         
     
     """
@@ -957,7 +1060,7 @@ for S in subject_list:
         
         #tcrit = qcrit/np.sqrt(2)
         
-        print('\t\t{} - {}: qcrit = {:.4f}, qtest = {:.4f} (P={:.4f})'.format(k1, k2,qcrit, qtest, p))
+        print('\t\t{} - {}: qcrit = {:.4f}, qtest = {:.4f} (P={:.4e})'.format(k1, k2,qcrit, qtest, p))
     
     
     """
@@ -993,7 +1096,7 @@ for S in subject_list:
         
         #tcrit = qcrit/np.sqrt(2)
         
-        print('\t\t{} - {}: qcrit = {:.4f}, qtest = {:.4f} (P={:.4f})'.format(k1, k2,qcrit, qtest, p))
+        print('\t\t{} - {}: qcrit = {:.4f}, qtest = {:.4f} (P={:.4e})'.format(k1, k2,qcrit, qtest, p))
 
 #%%
 
