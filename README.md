@@ -9,7 +9,7 @@ For task code, see https://github.com/santacruzlab  (branch: bmi_ssd) bmi_python
 
 
 **main_plots.py**
-	This script is designed to visually explore (i.e., plot) the relationship of neural spiking variance (as determined by factor analysis) and behavior (adaptation to a rotation perturbation).
+	This script is designed to visually explore (i.e., plot) the relationship of neural spiking variance (as determined by factor analysis) and behavior (adaptation to a rotation perturbation).  It contains the code to plot the main five figures of the manuscript.
 
 	Pre-requisites:
 		Decoder unit factor loadings to compute variance components; Behavior (cursor distance, trial times)
@@ -30,9 +30,19 @@ For task code, see https://github.com/santacruzlab  (branch: bmi_ssd) bmi_python
 	Neural
 		two-way ANOVA + post-hoc testing for %sv at each timepoint
 
+**supplementary.py**
 
-	Pre-requisites:
+**supplementary_plots.py**
 
+
+
+
+
+**FUNCTIONS**
+
+**basicFunctions.py**
+
+**behavioralMetric_fxns.py**
 
 **generatePickles.py**
 
@@ -42,12 +52,10 @@ For task code, see https://github.com/santacruzlab  (branch: bmi_ssd) bmi_python
 
 **stats_fxns.py**
 
-**adaptation_fxns.py** 
-	Change fractionOfRecovery to adaptation
 
 	
 
 
 
 #Updates
-04.20.2023: intial commit
+07.23.2023: intial commit
