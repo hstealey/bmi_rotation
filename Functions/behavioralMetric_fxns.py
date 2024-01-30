@@ -39,7 +39,7 @@ import matplotlib.pyplot as plt
 #from collections import Counter
 
 
-#import pickle
+# import pickle
 # os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
 
 # fn = glob.glob('*_FA_loadings_40sets_noTC.pkl')
@@ -47,6 +47,14 @@ import matplotlib.pyplot as plt
 # Aev = pickle.load(open_file)
 # open_file.close()
 
+
+# open_file = open(fn[1], "rb")
+# Bev = pickle.load(open_file)
+# open_file.close()
+# getAdaptation(Bev, returnMag=False)
+
+
+plt.rcParams.update({'font.sans-serif': 'Arial', 'lines.linewidth':1, 'lines.color':'k'})
 
 
 
@@ -165,92 +173,176 @@ def getAdaptation(Sev, returnMag=False):
         dMA.append(adt[i][iMA[-1]])
         
         
-        # 'Example Plot'
-        # 'IBM'
-        # blue    = [100/255, 143/255, 255/255]
-        # purple  = [120/255, 94/255, 240/255]
-        # magenta = [220/255, 38/255, 127/255]
-        # orange  = [254/255, 97/255, 0/255]
-        # yellow  = [255/255, 176/255, 0/255]
+        'Example Plot'
+        'IBM'
+        blue    = [100/255, 143/255, 255/255]
+        purple  = [120/255, 94/255, 240/255]
+        magenta = [220/255, 38/255, 127/255]
+        orange  = [254/255, 97/255, 0/255]
+        yellow  = [255/255, 176/255, 0/255]
 
         
-        # if i == 25: #Subject B
+        if i == 25: #Subject B
 
         
-        #     BLx = mT/mT - 1
-        #     BLy = mD/mD - 1
+            BLx = mT/mT - 1
+            BLy = mD/mD - 1
             
-        #     IDx = -1*(tPE[0]/mT - 1)
-        #     IDy = -1*(dPE[0]/mD - 1)
+            IDx = (tPE[0]/mT - 1)
+            IDy = (dPE[0]/mD - 1)
             
-        #     IAx = -1*(tPE[1]/mT - 1)
-        #     IAy = -1*(dPE[1]/mD - 1)
+            IAx = (tPE[1]/mT - 1)
+            IAy = (dPE[1]/mD - 1)
             
-        #     MAx = -1*(tPE[iMA[-1]]/mT - 1)
-        #     MAy = -1*(dPE[iMA[-1]]/mD - 1)
+            MAx = (tPE[iMA[-1]]/mT - 1)
+            MAy = (dPE[iMA[-1]]/mD - 1)
             
-        #     plt.figure(figsize=((3,3)))
+            plt.figure(figsize=((3,3)))
             
-        #     ind = np.arange(40)
-        #     ind = np.delete(ind, [0,1,iMA[-1]])
+            ind = np.arange(40)
+            ind = np.delete(ind, [0,1,iMA[-1]])
             
-        #     plt.scatter(-1*(tPE[ind]/mT -1), -1*(dPE[ind]/mD - 1), color='white', edgecolor='k', alpha=0.25, s=10,zorder=0)
+            fig, ax = plt.subplots(figsize=(3,3))
             
-        #     plt.scatter(BLx, BLy, color='k', s=50, edgecolor='k')
-        #     plt.scatter(IDx, IDy, color=magenta, s=50, edgecolor='k')
-        #     plt.scatter(IAx, IAy, color=yellow, s=30, edgecolor='k')
-        #     plt.scatter(MAx, MAy, color=blue, s=30, edgecolor='k')
+            plt.scatter((tPE[ind]/mT -1), (dPE[ind]/mD - 1), color='white', edgecolor='k', alpha=0.25, s=10,zorder=0)
             
-        #     'Baseline-Initial Drop'
-        #     plt.plot([BLx, IDx],[BLy, IDy], color=magenta, zorder=0)
+            plt.scatter(BLx, BLy, color='k', s=50, edgecolor='k')
+            plt.scatter(IDx, IDy, color=magenta, s=50, edgecolor='k')
+            plt.scatter(IAx, IAy, color=yellow, s=30, edgecolor='k')
+            plt.scatter(MAx, MAy, color=blue, s=30, edgecolor='k')
             
-        #     'Baseline-Initial Adaptation'
-        #     plt.plot([BLx, IAx],[BLy, IAy], color=yellow, zorder=0)#, ls='-.')
+          
+            'Baseline-Initial Drop'
+            plt.plot([BLx, IDx],[BLy, IDy], color=magenta, zorder=0)
             
-        #     'Baseline-Max Adaptation'
-        #     plt.plot([BLx, MAx],[BLy, MAy], color=blue, zorder=0)#, ls='-.')
+            'Baseline-Initial Adaptation'
+            plt.plot([BLx, IAx],[BLy, IAy], color=yellow, zorder=0)#, ls='-.')
+            
+            'Baseline-Max Adaptation'
+            plt.plot([BLx, MAx],[BLy, MAy], color=blue, zorder=0)#, ls='-.')
             
             
-        #     'SLOPE OF BASELINE-INTIAL DROP'
-        #     slope_ID  = IDy/IDx  
-        #     intercept_ID = IDy - slope_ID*IDx
+            'SLOPE OF BASELINE-INTIAL DROP'
+            slope_ID  = IDy/IDx  
+            intercept_ID = IDy - slope_ID*IDx
             
-        #     slope_perpID = -1/slope_ID
+            slope_perpID = -1/slope_ID
             
-        #     'PERP - Baseline-Intial Adaptation'
-        #     intercept_perpID_atIA  = IAy - slope_perpID*IAx
+            'PERP - Baseline-Intial Adaptation'
+            intercept_perpID_atIA  = IAy - slope_perpID*IAx
 
-        #     xproj_IA = (intercept_perpID_atIA - intercept_ID)/(slope_ID - slope_perpID)
-        #     yproj_IA = slope_perpID*xproj_IA + intercept_perpID_atIA
+            xproj_IA = (intercept_perpID_atIA - intercept_ID)/(slope_ID - slope_perpID)
+            yproj_IA = slope_perpID*xproj_IA + intercept_perpID_atIA
             
             
-        #     'PERP - Baseline-Max'     
-        #     intercept_perpID_atMA = MAy - slope_perpID*MAx
+            'PERP - Baseline-Max'     
+            intercept_perpID_atMA = MAy - slope_perpID*MAx
             
-        #     xproj_MA = (intercept_perpID_atMA - intercept_ID)/(slope_ID - slope_perpID)
-        #     yproj_MA = slope_perpID*xproj_MA + intercept_perpID_atMA
+            xproj_MA = (intercept_perpID_atMA - intercept_ID)/(slope_ID - slope_perpID)
+            yproj_MA = slope_perpID*xproj_MA + intercept_perpID_atMA
             
             
-        #     'Plot projections.'
-        #     plt.scatter(xproj_IA, yproj_IA, color=yellow, s=100, marker='*', edgecolor='k')
-        #     plt.plot([IAx, xproj_IA], [IAy, yproj_IA], color='grey', zorder=0, ls='-')
+            'Plot projections line'
+            # plt.plot([0, xproj_IA],[0, yproj_IA], zorder=1, color=yellow, ls='--')
+            # plt.plot([0, xproj_MA],[0, yproj_MA], zorder=1, color=blue, ls='--')
+        
             
-        #     plt.scatter(xproj_MA, yproj_MA, color=blue, s=100, marker='*', edgecolor='k')
-        #     plt.plot([MAx, xproj_MA], [MAy, yproj_MA], color='grey', zorder=0, ls='-')
+            'Plot projections.'
+            #plt.scatter(IDx, IDy, color=magenta, marker='*', edgecolor='k', s=100)
+            
+            plt.scatter(xproj_IA, yproj_IA, color=yellow, s=100, marker='*', edgecolor='k', zorder=10)
+            plt.plot([IAx, xproj_IA], [IAy, yproj_IA], color='grey', zorder=0, ls='-')
+            
+            plt.scatter(xproj_MA, yproj_MA, color=blue, s=100, marker='*', edgecolor='k', zorder=10)
+            plt.plot([MAx, xproj_MA], [MAy, yproj_MA], color='grey', zorder=0, ls='-')
 
-        #     plt.axis('equal')
+            plt.axis('equal')
 
-        #     lenID = dID[-1]
-        #     lenIR = np.sqrt(xproj_IA**2+yproj_IA**2)
-        #     lenMR = np.sqrt(xproj_MA**2+yproj_MA**2)
-            
-        #     plt.axhline(0, xmax=0.9, color='lightgrey', ls='-.', zorder=0)
-        #     plt.axvline(0, ymax=0.97, color='lightgrey', ls='-.', zorder=0)
+            lenID = dID[-1]
+            lenIR = np.sqrt(xproj_IA**2+yproj_IA**2)
+            lenMR = np.sqrt(xproj_MA**2+yproj_MA**2)
             
             
-        #     plt.xticks([])
-        #     plt.yticks([])
-        #     plt.show()
+            plt.xlim([0,0.55])
+            plt.ylim([0,0.55])
+            
+            plt.xticks([0,  0.25,  0.50], [0, 0.25, 0.50])
+            
+            plt.yticks([0,  0.25,   0.50], [0, 0.25, 0.50])
+            
+            ax.spines[['top', 'right']].set_visible(False)
+            
+            # plt.xlabel('trial time (T) (Eq.2)')
+            # plt.ylabel('distance (D) (Eq. 1)')
+            
+            plt.show()
+            
+            '#################################################################'
+            
+            # plt.figure(figsize=((3,3)))
+            
+
+            # plt.scatter(BLx, BLy, color='k', s=50, edgecolor='k')
+            # plt.scatter(IDx, IDy, color=magenta, s=50, edgecolor='k')
+            # plt.scatter(IAx, IAy, color=yellow, s=30, edgecolor='k')
+            # #plt.scatter(MAx, MAy, color=blue, s=30, edgecolor='k')
+            
+          
+            # 'Baseline-Initial Drop'
+            # plt.plot([BLx, IDx],[BLy, IDy], color=magenta, zorder=0)
+            
+            # 'Baseline-Initial Adaptation'
+            # plt.plot([BLx, IAx],[BLy, IAy], color=yellow, zorder=0)#, ls='-.')
+            
+            # 'Baseline-Max Adaptation'
+            # #plt.plot([BLx, MAx],[BLy, MAy], color=blue, zorder=0)#, ls='-.')
+            
+            
+            # 'SLOPE OF BASELINE-INTIAL DROP'
+            # slope_ID  = IDy/IDx  
+            # intercept_ID = IDy - slope_ID*IDx
+            
+            # slope_perpID = -1/slope_ID
+            
+            # 'PERP - Baseline-Intial Adaptation'
+            # intercept_perpID_atIA  = IAy - slope_perpID*IAx
+
+            # xproj_IA = (intercept_perpID_atIA - intercept_ID)/(slope_ID - slope_perpID)
+            # yproj_IA = slope_perpID*xproj_IA + intercept_perpID_atIA
+            
+            
+            
+            # 'Plot projections line'
+            # plt.plot([0, xproj_IA],[0, yproj_IA], zorder=1, color=yellow, ls='--')
+            # # plt.plot([0, xproj_MA],[0, yproj_MA], zorder=1, color=blue, ls='--')
+        
+            
+            # 'Plot projections.'
+            # plt.scatter(IDx, IDy, color=magenta, marker='*', edgecolor='k', s=100)
+            
+            # plt.scatter(xproj_IA, yproj_IA, color=yellow, s=100, marker='*', edgecolor='k', zorder=10)
+            # plt.plot([IAx, xproj_IA], [IAy, yproj_IA], color='grey', zorder=0, ls='-')
+            
+            # # plt.scatter(xproj_MA, yproj_MA, color=blue, s=100, marker='*', edgecolor='k', zorder=10)
+            # # plt.plot([MAx, xproj_MA], [MAy, yproj_MA], color='grey', zorder=0, ls='-')
+
+            # plt.axis('equal')
+
+            # lenID = dID[-1]
+            # lenIR = np.sqrt(xproj_IA**2+yproj_IA**2)
+            # lenMR = np.sqrt(xproj_MA**2+yproj_MA**2)
+            
+            
+            # plt.xlim([0,0.55])
+            # plt.ylim([0,0.55])
+            
+            # plt.xticks([0,  0.25,  0.50], [0, 0.25, 0.50])
+            
+            # plt.yticks([0,  0.25,   0.50], [0, 0.25, 0.50])
+            
+            # ax.spines[['top', 'right']].set_visible(False)
+            
+            
             
             
 
@@ -264,13 +356,30 @@ def getAdaptation(Sev, returnMag=False):
         return(adt, dfAdt)
     
                 
+#%%
+
+# import pickle
+# os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
+
+# fn = glob.glob('*_FA_loadings_40sets_noTC.pkl')
+# open_file = open(fn[0], "rb")
+# Aev = pickle.load(open_file)
+# open_file.close()
 
 
-#adt, df = getAdaptation(Aev, returnMag=False)
+# open_file = open(fn[1], "rb")
+# Bev = pickle.load(open_file)
+# open_file.close()
+# getAdaptation(Bev, returnMag=False)
+
+
+# adt, df = getAdaptation(Bev, returnMag=False)
 
 #%%
 
 'Matching Example Barplot'
+
+# adt, df = getAdaptation(Bev, returnMag=False)
 
 # i = 25
 
@@ -285,7 +394,7 @@ def getAdaptation(Sev, returnMag=False):
 # lenIR = df['IR'][i]
 # lenMR = df['MR'][i]
 
-# plt.figure(figsize=(2,4))
+# fig, ax = plt.subplots(figsize=(2,4))
 # plt.bar(0, lenID, width=1.0, color=magenta, edgecolor='k')
 # plt.bar(1, lenIR, width=1.0, color=yellow, edgecolor='k')
 # plt.bar(2, lenMR, width=1.0, color=blue, edgecolor='k')
@@ -297,9 +406,19 @@ def getAdaptation(Sev, returnMag=False):
 # plt.ylabel('Adaptation', fontname='Arial', fontsize=12, fontweight='bold')
 
 
+# plt.scatter(-0.15, lenID-0.035, color=magenta, s=50, marker='o', edgecolor='k')
+# plt.scatter(0.85, lenIR-0.035, color=yellow, s=100, marker='*', edgecolor='k')
+# plt.scatter(1.85, lenMR-0.035, color=blue, s=100, marker='*', edgecolor='k')
 
+# plt.scatter(0.15, lenID-0.035, color='k', s=50, marker='o', edgecolor='k')
+# plt.scatter(1.15, lenIR-0.035, color='k', s=50, marker='o', edgecolor='k')
+# plt.scatter(2.15, lenMR-0.035, color='k', s=50, marker='o', edgecolor='k')
 
+# plt.text(-0.3,lenID+0.025, 'ID', color='white', fontsize=20, fontweight='bold')
+# plt.text(0.7,lenIR+0.025, 'IA', color='white', fontsize=20, fontweight='bold')
+# plt.text(1.5,lenMR+0.025, 'MA', color='white', fontsize=20, fontweight='bold')
 
+# ax.spines[['bottom', 'right']].set_visible(False)
 
 
 #%%

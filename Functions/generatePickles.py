@@ -10,13 +10,14 @@ Purpose:
     [2] To combine behavioral metrics (distance cursor travels, time of trials) from all sessions
     
     
-Last update: April 23, 2023
+Last update: January 29, 2024
 @author: hanna
 """
 
 
 import os
 import pickle
+import statistics
 import numpy as np
 from glob import glob
 from scipy import stats
@@ -24,12 +25,12 @@ import pandas as pd
 from bioinfokit.analys import stat
 
 os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Functions')
-from generatePickles_fxns import  getBehavior_TimeDist, zeroUnits, varianceSharedPrivate_byTrial #, getdSC
+from generatePickles_fxns import  getBehavior_TimeDist, zeroUnits, varianceSharedPrivate_byTrial, number_of_factors, varianceSharedPrivate_byTrial, factor_analysis_final_model
 
 dSubjects  = {0:['airp','Airport'], 1:['braz','Brazos']}
 targetDeg = np.arange(0,360,45)
 
-subject_ind = 0
+subject_ind = 1
 subject = dSubjects[subject_ind][0]
 subj = dSubjects[subject_ind][1]
 root_path = r'C:\BMI_Rotation\Data'+'\\'+subj
@@ -82,7 +83,7 @@ except:
     pickle.dump(obj_to_pickle, open_file)
     open_file.close()
  
-#%%
+
 '#############################################################################'
 '''  Determining Decoder Units with "0" Spike Count in any Set of Trials    '''
 '#############################################################################'
@@ -132,12 +133,9 @@ except:
     open_file.close()
 
 
-
-
-#%%
-'#############################################################################'
-'            Decoder Population - Factor Analysis '
-'#############################################################################'
+'###########################'
+'Formatting Imported Data'
+'###########################'
 
 dates = date_list
 
@@ -153,103 +151,225 @@ DX = [dDist[d] for d in dates]
 
 'Spike Counts + Trial Information'
 dSC     = [ dSC_[d] for d in dates]
-targets = TL#[targ[d] for d in dates]
+targets = TL
 
 
-dTimes_ = {}
-dDist_  = {}
-dEV = {}
 
-numUnits = []
+#%%
+'#############################################################################'
+'''   Determining the Number of Factors CROSS-VALIDATION                '''
+'#############################################################################'
 
-for d, date in enumerate(dates):#[38,41,48]:#range(len(common_dates)):
-   
-    dEV[d]     = {}
-    dTimes_[d] = {}
-    dDist_[d]  = {}
 
-    for k in ['BL', 'PE']:
-        
-        dEV[d][k] = {'shared':[], 'private':[], 'loadings':[]}
-     
-        if k == 'BL':
-            times = tBL_list[d]
-        elif k == 'PE':
-            times = tPE_list[d]
-        
-        
-        'Trials and their Target Locations'
-        trials = TN[d][k]#.tolist()
-        targs  = np.array(targets[d][k])
-        dfUpdates = pd.DataFrame({'trials': trials, 'targs':targs})
-        
-        'Number of Units'
-        numU = np.shape(dSC[d][k])[1]
+try:
+    os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
+    filename = subject+'numFactors_20240123_10fold_fascores.pkl'
+    open_file = open(filename, "rb")
+    loaded = pickle.load(open_file)
+    numFactorsCV = loaded[2] #dates,degs,numFactorsCV = loaded
+    open_file.close()
 
+except:
+    
+    dates_, numFactorsCV, numUnits_, numBins_ = number_of_factors(dfZERO, dates, tBL_list, tPE_list, TN, TL, DX, dSC, targets, subject, 'cv')
+
+    os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
+    obj_to_pickle = [numUnits_, numBins_, numFactorsCV, dates_]
+    filename = subject+'numFactors_20240123_10fold_fascores.pkl'
+    open_file = open(filename, "wb")
+    pickle.dump(obj_to_pickle, open_file)
+    open_file.close()
+    
+#%%
+'#############################################################################'
+'''   Determining the Number of Factors 90% OF SHARED VARIANCE              '''
+'#############################################################################'
+
+
+try:
+    os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
+    filename = subject+'_numFactors_90sharedvariance_20240123.pkl'
+    open_file = open(filename, "rb")
+    loaded = pickle.load(open_file)
+    
+    numUnits     = loaded[0]
+    numBins      = loaded[1]
+    numFactorsSV = loaded[2]
+    
+    open_file.close()
+
+except:
+    
+    dates_, numFactorsSV, numUnits, numBins = number_of_factors(dfZERO, dates, tBL_list, tPE_list, TN, TL, DX, dSC, targets, subject, 'sv')
+
+    os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
+    obj_to_pickle = [numUnits, numBins, numFactorsSV, dates_]
+    filename = subject+'_numFactors_90sharedvariance_20240123.pkl'
+    open_file = open(filename, "wb")
+    pickle.dump(obj_to_pickle, open_file)
+    open_file.close()
+    
+#%%
+
+
+'Percent Difference in Log-Likelihood Scores for Estimated Number of Factors'
+
+
+# nfSV = {}
+# nfCV = {}
+# ll   = {}
+
+# change = {}
+
+# for d in range(len(dates)): 
+
+#     nfSV[d] = {}
+#     nfCV[d] = {}
+#     ll[d]   = {}
+    
+#     change[d] = {}
+  
+#     for k in ['BL', 'PE']:
         
-        'Determine the indices of the spike count rows that below to each trial (and corresponding target location).'
-        inds = []
-        targ_inds = []
-        for t in np.unique(dfUpdates['trials']):
-            temp = dfUpdates.loc[dfUpdates['trials']==t].index.tolist()
-            inds.append(temp)
-            targ_inds.append(dfUpdates['targs'][temp[0]])
-       
-        'Determine the minimum number of trials for a given target location.'
-        minTrials = [len(np.where(np.array(targ_inds) == deg)[0])  for deg in targetDeg]
-        minNumTEST = min(minTrials)
+#         nfSV[d][k] = []
+#         nfCV[d][k] = []
+#         ll[d][k]   = []
         
-        if minNumTEST < 40:
-            print(d, 'FEWER THAN 40 TRIALS')
+#         change[d][k] = []
         
-        minNum = 40
-        'Determine the indices of each trial type'
-        TargInds   = np.zeros((8, minNum))
-        TrialTimes = np.zeros((8, minNum))
-        TrialDists = np.zeros((8, minNum))
-        
-        for i, deg in zip(np.arange(8), targetDeg):
-            temp = np.where(np.array(targ_inds) == deg)[0]
-            TargInds[i,:] = temp[:minNum]
+
+#         for j in range(40):
             
-            for ti in range(minNum):
-                TrialTimes[i,ti] = times[temp[ti]]
-                TrialDists[i,ti] = DX[d][k][temp[ti]]
-            
-        dTimes_[d][k] = TrialTimes
-        dDist_[d][k]  = TrialDists
+#             cv_mean = np.mean(np.array(numFactorsCV[d][k])[j,:,:], axis=1)
+#             ll[d][k].append(cv_mean)
         
-        'Perform FA on a set of 8 trials.'
-        for j in range(minNum): 
-            print(d, j, minNum)
-            set_targ_inds = (TargInds[:,j]).astype(int).tolist()
-            temp = np.concatenate([inds[i] for i in set_targ_inds]).tolist()
-            sc = np.array(dSC[d][k])[temp,:]
-
-            units_to_drop = dfZERO.loc[dfZERO['d']==date, 'unit'].tolist()
-            sc_fixed = np.delete(sc, units_to_drop, axis=1)
-
-            nS, nU = np.shape(sc_fixed)
-            numUnits.append(nS)
-
-            'Factor Analsysis'
+#             sv90 = np.array(numFactorsSV[d][k]['shared90'])[j]
+#             sv   = np.array(numFactorsSV[d][k]['shared'])[j,:]
             
-            if np.any(np.isnan(np.sum(stats.zscore(sc_fixed, axis=0), axis=0))) == 1:
-                print("WEIRD ERROR", d)
-                temp_zero = np.where(np.sum(sc_fixed, axis=0) == 0)[0][0]
-                print(temp_zero)
-                sc_fixed = np.delete(sc_fixed, temp_zero, axis=1)
-                print(np.shape(sc_fixed))
+#             diff = []
+#             for i in range(len(sv)):
+#                 diff.append( np.abs(sv[i] - sv90) )
+        
+#             nf_sv = np.where(np.array(diff) == np.min(diff))[0][0]
+#             nf_cv = np.where(cv_mean == np.max(cv_mean))[0][0]
             
-            results = varianceSharedPrivate_byTrial(stats.zscore(sc_fixed, axis=0)) 
-            dEV[d][k]['shared'].append(results[0])
-            dEV[d][k]['private'].append(results[1])
-            dEV[d][k]['loadings'].append(results[2]) #axis=0: loadings, axis=1: factors; n_components, n_features
+#             nfSV[d][k].append(nf_sv)
+#             nfCV[d][k].append(nf_cv)
+        
+#         minNF = np.min(nfSV[d][k])
+#         nfSV[d][k] = np.ones(40)*minNF
+        
+#         for i in range(40):
+            
+#             scores = np.array(ll[d][k][i])
+#             nf1 = int(nfSV[d][k][i])
+#             nf2 = int(nfCV[d][k][i])
+            
+#             percentChange = ((scores[nf1] - scores[nf2])/ scores[nf2])*100
+#             change[d][k].append(percentChange)
+
+# vals = []
+# for d in range(len(dates)):
+#     for k in ['BL', 'PE']:
+#         vals.append(change[d][k])
+
+# #import matplotlib.pyplot as plt
+# vals = np.concatenate((vals))
+# #plt.hist(vals)
+# m = np.mean(vals)
+# s = np.std(vals)
+# print('{} - % Change: {:.4f} ({:.4f})'.format(subject,m,s))
+           
+            
+            
+        
+        
+    
+    
+    
+#%%
+'#############################################################################'
+' Resolving the Number of Factors based on CROSS-VALIDATION & 90% Shared Variance'
+'#############################################################################'
+
+
+try:
+    os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
+    filename = subject+'_numFactors_20240124_experimental90Var.pkl'
+    open_file = open(filename, "rb")
+    loaded = pickle.load(open_file)
+    numFactors = loaded[0]
+
+except:
+    numFactors = {}
+    nfSV = {}
+    nfCV = {}
+    
+    for d in range(len(dates)): 
+        numFactors[d] = {}
+        nfSV[d] = {}
+        nfCV[d] = {}
+      
+        for k in ['BL', 'PE']:
+            
+            nfSV[d][k] = []
+            nfCV[d][k] = []
+            
+            nf = []
+            for j in range(40):
+                
+                cv_mean = np.mean(np.array(numFactorsCV[d][k])[j,:,:], axis=1)
+            
+                sv90 = np.array(numFactorsSV[d][k]['shared90'])[j]
+                sv   = np.array(numFactorsSV[d][k]['shared'])[j,:]
+                
+                diff = []
+                for i in range(len(sv)):
+                    diff.append( np.abs(sv[i] - sv90) )
+            
+                nf_sv = np.where(np.array(diff) == np.min(diff))[0][0]
+                nf_cv = np.where(cv_mean == np.max(cv_mean))[0][0]
+                
+                nfSV[d][k].append(nf_sv)
+                nfCV[d][k].append(nf_cv)
+                
+                nf.append(nf_sv)
+            
+            minNF = np.min(nf)
+            #TODO: check minNF >= np.mean(nfCV[d][k])
+            
+            numFactors[d][k] = np.ones(40)*minNF
+            
+            
+    os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
+    obj_to_pickle = [numFactors, nfCV, nfSV]
+    filename = subject+'_numFactors_20240124_experimental90Var.pkl'
+    pickle.dump(obj_to_pickle, open_file)
+    open_file.close()
+            
+
+
+
+
+
+
+
+
+
+
+#%%
+'#############################################################################'
+'            Decoder Population - Factor Analysis '
+'#############################################################################'
+
+
+
+deg_list, dates_, dEV, dTimes_, dDist, numUnits, numBins, sc_preZ = factor_analysis_final_model(numFactors, dfZERO, dates, tBL_list, tPE_list, TN, TL, DX, dSC, targets, subject)
 
 
 os.chdir(r'C:\Users\hanna\OneDrive\Documents\BMI_Rotation\Pickles')
-obj_to_pickle = [deg_list, dates, dEV, dTimes_, dDist_, numUnits]
-filename = subject+'_FA_loadings_40sets_noTC.pkl'
+obj_to_pickle = [deg_list, dates_, dEV, dTimes_, dDist_, numUnits, numBins, sc_preZ]
+filename = subject+'_FA_loadings_40sets_noTC_new.pkl'#filename = subject+'_FA_loadings_40sets_noTC.pkl'
 open_file = open(filename, "wb")
 pickle.dump(obj_to_pickle, open_file)
 open_file.close()

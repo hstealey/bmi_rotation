@@ -5,9 +5,139 @@ Created on Thu Apr 20 11:31:49 2023
 @author: hanna
 """
 
+"""
+
+
+'This script contains 6 functions that are used in generatePickles.py'
+
+'_____________________________________________________________________________'
+'_____________________________________________________________________________'
+
+[FUNCTION 1] getBehavior_TimeDist
+
+    inputs
+        path: full filepath to date folder of interest
+        returnCursor: returns the 
+
+    returns
+        if returnCursor == False:
+            return(dSC, dTime, dDist, dTN, dTargs)
+        else:
+            print(np.shape(dTargs))
+            return(pX, pY, dTN, dTargs)
+        
+       dSC: dictionary of spike counts aligned to 10Hz cursor updates
+       dTime: dictionary of trial times
+       dDist: dictionary of trial distances (cursor path length)
+       dTN: dictionary of trial numbers for each 10Hz update of dSC
+       dTargs: dictionary of target locations for each 10Hz update of dSC
+'_____________________________________________________________________________'
+'_____________________________________________________________________________'  
+
+[FUNCTION 2]  zeroUnits
+
+    PURPOSE: identifies units that don't have spiking activity within an 8-trial period
+
+    inputs
+        dTN: dictionary of trial number for each 10Hz update of dSC
+        dTargs: dictionary of target locations for each 10Hz update of dSC
+        dSC: dictionary of spike counts aligned to 10Hz cursor updates
+        
+    return
+    
+        datesZERO: list of dates (sessions) that correspond to each entry in unitsZERO
+        unitsZERO: list of units that have no spiking activity within an 8-trial period
+'_____________________________________________________________________________'
+'_____________________________________________________________________________'
+
+[FUNCTION 3] compute_scores
+
+    REF: https://scikit-learn.org/stable/auto_examples/decomposition/plot_pca_vs_fa_model_selection.html
+
+    PURPOSE: to compute the negative log-likelihood scores for factor analysis models up to n number of factors (set to 10-Fold CV)
+    
+    inputs
+        X: 2D numpy array that contains the data for the factor analysis model (rows: z-scored (by unit) spike counts x columns: decoder units)
+        n_components: list of number of components (factors) to use to fit each model
+
+    returns
+        fa_scores: 2D list of scores for each model build on n factors for each fold
+        
+'_____________________________________________________________________________'
+'_____________________________________________________________________________'
+
+[FUNCTION 4] varianceSharedPrivate_byTrial_ALT
+
+    PURPOSE: to decompose neural population variance into shared and private components
+        
+    inputs
+        SC: 2D numpy array that contains the data for the factor analysis model (rows: z-scored (by unit) spike counts x columns: decoder units)
+        nf: number of factors used to fit the single factor analysis model
+        
+    returns
+        total: total amount of variance explained
+        shared: total amount of shared variance explained
+        private: total amount of private variance explained
+        loadings: 2D factor loading matrix (can be used to calculate shared variance)
+      
+'_____________________________________________________________________________'
+'_____________________________________________________________________________'
+
+[FUNCTION 5] number_of_factors
+    PURPOSE: to determine the number of factors used to fit each FA model
+    
+    Criteria:
+    [1] 'cv': 10-fold cross-validation
+    [2] 'sv': 90% of shared variance
+    
+    inputs:
+        dfZERO: see definition above (zeroUnits)
+        dates: list of dates (sessions) analyzed
+        tBL_list: list of trial times for baseline
+        tPE_list: list of trial times for perturbation
+        TN: dictionary of trial number
+        TL: dictionary of target location
+        DX: dictionary of cursor path lengths
+        dSC: dictionary of aligned spike counts
+        targets: see TL
+        subject: string of subject code (e.g., 'airp')
+        mode: string of criteria mode ('cv' or 'sv')
+        
+    
+    returns
+        dates: list of dates (sessions) analyzed
+        numFactors: dictionary of either cross-validation log-likelihood scores (cv mode) or the amount of shared variance explained by each factor model (sv mode)
+        numUnits: dictionary containing the number of decoder units for each date, block, trial set number (TSN)
+        numBins: number of samples per decoder unit used for FA model fitting for each date, block, trial set number (TSN)
+          
+
+
+'_____________________________________________________________________________'
+'_____________________________________________________________________________'
+
+[FUNCTION 6] factor_analysis_final_model
+
+    Purpose: to fit a factor analysis model using the number of factors as determined by the criteria listed in Function 5's definition
+
+    inputs:
+        numFactors: dictionary of number of factors to use to fit the FA model (from both modes of Function 5; see generatePickles.py for how the two criteria are resolved)
+
+    returns:
+        deg_list: list of rotation applied (degrees) for each session analyzed
+        dates: dates of sessions analyzed
+        dEV: dictionary of explained variance from factor analysis output (total, shared, private, factor loadings)
+        dTimes_, dDist, numUnits, numBins: see Functions 1,2 for definition
+        sc_preZ: dictionary of spike counts prior to z-scoring (same as dSC)
+        
+
+
+"""
+
+
 
 import os
 import glob
+import tqdm
 import tables
 import pickle
 
@@ -17,7 +147,7 @@ from scipy import stats
 
 from sklearn.decomposition import FactorAnalysis
 
-def getBehavior_TimeDist(path):
+def getBehavior_TimeDist(path, returnCursor=False):
     
     os.chdir(path)
     
@@ -187,8 +317,8 @@ def getBehavior_TimeDist(path):
     '################################################' 
     
     dSC = {}
-    # pX = {}
-    # pY = {}
+    pX = {}
+    pY = {}
     # vX = {}
     # vY = {}
     dTN = {} #trial_num = {}
@@ -203,8 +333,8 @@ def getBehavior_TimeDist(path):
         dSC[k]    = []
         dTN[k]    = []
         dTargs[k] = []
-        # pX[k]         = []
-        # pY[k]         = []
+        pX[k]         = []
+        pY[k]         = []
         # vX[k]         = []
         # vY[k]         = []
         # trial_num[k]  = []
@@ -224,8 +354,8 @@ def getBehavior_TimeDist(path):
                     dSC[k].append(np.sum(spikes[i-5:i+1, :, 0], axis=0))
                     dTN[k].append(j) 
                     dTargs[k].append(targ)
-                    # pX[k].append(posX[i])
-                    # pY[k].append(posY[i])
+                    pX[k].append(posX[i])
+                    pY[k].append(posY[i])
                     # vX[k].append(velX[i])
                     # vY[k].append(velY[i])
                     # trial_num[k].append(j)
@@ -242,8 +372,11 @@ def getBehavior_TimeDist(path):
    
        
 
-
-    return(dSC, dTime, dDist, dTN, dTargs)
+    if returnCursor == False:
+        return(dSC, dTime, dDist, dTN, dTargs)
+    else:
+        print(np.shape(dTargs))
+        return(pX, pY, dTN, dTargs)
 
 
 
@@ -314,7 +447,29 @@ def zeroUnits(dTN, dTargs, dSC, date):
     return(datesZERO, unitsZERO)
 
 
-def varianceSharedPrivate_byTrial(SC):
+'############################################################################################'
+'Compute 10-Fold Cross-Validation Scores (negative log-likelihood) for Factor Analysis Models'
+'############################################################################################'
+
+def compute_scores(X, n_components):
+    
+
+    fa = FactorAnalysis(max_iter=10000)
+    
+    fa_scores = []
+    for n in n_components:
+    
+        fa.n_components = n
+        fa_scores.append(cross_val_score(fa, X, cv=10, n_jobs=-1))#fa_scores.append(np.mean(cross_val_score(fa, X, cv=10, n_jobs=-1)))#np.shape(X)[0])))
+
+    return(fa_scores)
+
+'###########################################################'
+'Factor Analysis by Trial Set Number (TSN; sets of 8 trials)'
+'###########################################################'
+
+
+def varianceSharedPrivate_byTrial(SC, nf):
 
     '''
     This function uses factor analysis to parse the total population variance into
@@ -323,17 +478,330 @@ def varianceSharedPrivate_byTrial(SC):
     '''
     
 
-    numUnits = np.shape(SC)[1]
-    
-    FA = FactorAnalysis(n_components=numUnits)
+    FA = FactorAnalysis(n_components=nf, max_iter=10000)
     FA.fit(SC)
     
     shared_variance = FA.components_.T.dot(FA.components_)
     private_variance = np.diag(FA.noise_variance_)
-    
-    tot_shared  = [shared_variance[i,i] for i in range(numUnits)]
-    tot_private = [private_variance[i,i] for i in range(numUnits)]
 
-    weights = FA.components_
     
-    return(tot_shared, tot_private, weights)
+    total   = np.trace(shared_variance) + np.trace(private_variance) #equivalent: total = np.trace(shared_variance+private_variance)
+    shared  = np.trace(shared_variance) 
+    private = np.trace(private_variance)                
+    
+    weights = FA.components_
+    loadings = weights
+    
+    return(total, shared, private, loadings) 
+
+'##########################################################################'
+' Determining the Number of Factors CROSS-VALIDATION, 90% SHARED VARIANCE '
+'##########################################################################'
+
+
+def number_of_factors(dfZERO, dates, tBL_list, tPE_list, TN, TL, DX, dSC, targets, subject, mode):
+    
+    dTimes_ = {}
+    dDist_  = {}
+
+    
+    numUnits = {}
+    numBins  = {}
+    numFactors = {}
+    
+    
+    for d, date in enumerate(tqdm.tqdm(dates)):#[38,41,48]:
+       
+        dTimes_[d] = {}
+        dDist_[d]  = {}
+        
+ 
+        numUnits[d]   = {}
+        numBins[d]    = {}
+        numFactors[d] = {}
+  
+        
+    
+        for k in ['BL', 'PE']:
+            
+            numUnits[d][k]   = []
+            numBins[d][k]    = []
+            
+            if mode == 'cv':
+                'Cross-Validation'
+                numFactors[d][k] = []
+            elif mode == 'sv':
+                'Shared Variance'
+                numFactors[d][k] = {'total': [], 'shared': [], 'private':[], 'loadings':[], 'shared90':[]}
+                
+
+         
+            if k == 'BL':
+                times = tBL_list[d]
+            elif k == 'PE':
+                times = tPE_list[d]
+            
+            
+            'Trials and their Target Locations'
+            trials = TN[d][k]
+            targs  = np.array(targets[d][k])
+            dfUpdates = pd.DataFrame({'trials': trials, 'targs':targs})
+        
+            
+            'Determine the indices of the spike count rows that below to each trial (and corresponding target location).'
+            inds = []
+            targ_inds = []
+            for t in np.unique(dfUpdates['trials']):
+                temp = dfUpdates.loc[dfUpdates['trials']==t].index.tolist()
+                inds.append(temp)
+                targ_inds.append(dfUpdates['targs'][temp[0]])
+           
+            'Determine the minimum number of trials for a given target location.'
+            targetDeg = np.arange(0,360,45)
+            minTrials = [len(np.where(np.array(targ_inds) == deg)[0])  for deg in targetDeg]
+            minNumTEST = min(minTrials)
+            
+            if minNumTEST < 40:
+                print(d, 'FEWER THAN 40 TRIALS')
+            
+            minNum = 40
+            'Determine the indices of each trial type'
+            TargInds   = np.zeros((8, minNum))
+            TrialTimes = np.zeros((8, minNum))
+            TrialDists = np.zeros((8, minNum))
+            
+            for i, deg in zip(np.arange(8), targetDeg):
+                temp = np.where(np.array(targ_inds) == deg)[0]
+                TargInds[i,:] = temp[:minNum]
+                
+                for ti in range(minNum):
+                    TrialTimes[i,ti] = times[temp[ti]]
+                    TrialDists[i,ti] = DX[d][k][temp[ti]]
+                
+            dTimes_[d][k] = TrialTimes
+            dDist_[d][k]  = TrialDists
+            
+            'Perform FA on a set of 8 trials.'
+            
+            
+            for j in range(minNum): 
+                tempSV = []
+             
+                set_targ_inds = (TargInds[:,j]).astype(int).tolist()
+                temp = np.concatenate([inds[i] for i in set_targ_inds]).tolist()
+                sc = np.array(dSC[d][k])[temp,:]
+    
+                units_to_drop = dfZERO.loc[dfZERO['d']==date, 'unit'].tolist()
+                sc_fixed = np.delete(sc, units_to_drop, axis=1)
+    
+                
+                '_________________________________________________________________'
+                
+                'Factor Analsysis'
+                
+                """
+                    k-fold cross-validation
+                
+                    OR
+                
+                    90% variance
+                    
+                """            
+                
+                '_________________________________________________________________'
+                
+                if np.any(np.isnan(np.sum(stats.zscore(sc_fixed, axis=0), axis=0))) == 1:
+                    temp_zero = np.where(np.sum(sc_fixed, axis=0) == 0)[0][0]
+                    sc_fixed = np.delete(sc_fixed, temp_zero, axis=1)
+                    print('ZERO ERROR')
+                
+                X = stats.zscore(sc_fixed, axis=0)
+                X = X[:,:]
+                
+                n_bins  = np.shape(X)[0]
+                n_units = np.shape(X)[1]
+                
+                numBins[d][k].append(n_bins)
+                numUnits[d][k].append(n_units)
+                
+                if mode == 'cv':
+                    '10-Fold Cross Validation'
+                    if subject == 'airp':
+                        n_components = np.arange(n_units-10)
+                    elif subject == 'braz':
+                        n_components = np.arange(50)
+                    else:
+                        print('ERROR in factorAnalysis_fxn subject')
+        
+                    fa_scores = compute_scores(X, n_components)
+                    nf = np.where(fa_scores == np.max(fa_scores))[0][0]
+                    
+                    numFactors[d][k].append(fa_scores)
+                
+                elif mode == 'sv':
+                    'Determining 90% of Shared Variance'
+                    nf = n_units
+                    total, shared, private, loadings = varianceSharedPrivate_byTrial(X, nf)
+                    sv90 = shared*0.9
+                    
+                    
+                    total_ = []
+                    shared_ = []
+                    private_ = []
+                    loadings_ = []
+                    
+                    for numF in range(n_units): #TODO: Full number?
+                        total, shared, private, loadings = varianceSharedPrivate_byTrial(X, numF)
+                        
+                        total_.append(total)
+                        shared_.append(shared)
+                        private_.append(private)
+                        loadings_.append(loadings)
+                        
+                    numFactors[d][k]['total'].append(total_)
+                    numFactors[d][k]['shared'].append(shared_)
+                    numFactors[d][k]['private'].append(private_)
+                    numFactors[d][k]['loadings'].append(loadings_)
+                
+                    
+                print(date, k, j)
+            print(date)
+            
+    return(dates, numFactors, numUnits, numBins)
+
+
+def factor_analysis_final_model(numFactors, dfZERO, dates, tBL_list, tPE_list, TN, TL, DX, dSC, targets, subject):
+        
+    dTimes_ = {}
+    dDist_  = {}
+
+    
+    numUnits = {}
+    numBins  = {}
+    dEV      = {}
+    sc_preZ  = {}
+    
+    
+    for d, date in enumerate(tqdm.tqdm(dates)):#[38,41,48]:
+       
+        dTimes_[d] = {}
+        dDist_[d]  = {}
+        
+ 
+        numUnits[d]   = {}
+        numBins[d]    = {}
+        dEV[d]        = {}
+        sc_preZ[d]    = {}
+  
+    
+        for k in ['BL', 'PE']:
+            
+            numUnits[d][k]   = []
+            numBins[d][k]    = []
+            dEV[d][k]        = {'total': [], 'shared': [], 'private':[], 'loadings':[]}
+            sc_preZ[d][k]    = []
+            
+            if k == 'BL':
+                times = tBL_list[d]
+            elif k == 'PE':
+                times = tPE_list[d]
+            
+            
+            'Trials and their Target Locations'
+            trials = TN[d][k]
+            targs  = np.array(targets[d][k])
+            dfUpdates = pd.DataFrame({'trials': trials, 'targs':targs})
+        
+            
+            'Determine the indices of the spike count rows that below to each trial (and corresponding target location).'
+            inds = []
+            targ_inds = []
+            for t in np.unique(dfUpdates['trials']):
+                temp = dfUpdates.loc[dfUpdates['trials']==t].index.tolist()
+                inds.append(temp)
+                targ_inds.append(dfUpdates['targs'][temp[0]])
+           
+            'Determine the minimum number of trials for a given target location.'
+            targetDeg = np.arange(0,360,45)
+            minTrials = [len(np.where(np.array(targ_inds) == deg)[0])  for deg in targetDeg]
+            minNumTEST = min(minTrials)
+            
+            if minNumTEST < 40:
+                print(d, 'FEWER THAN 40 TRIALS')
+            
+            minNum = 40
+            'Determine the indices of each trial type'
+            TargInds   = np.zeros((8, minNum))
+            TrialTimes = np.zeros((8, minNum))
+            TrialDists = np.zeros((8, minNum))
+            
+            for i, deg in zip(np.arange(8), targetDeg):
+                temp = np.where(np.array(targ_inds) == deg)[0]
+                TargInds[i,:] = temp[:minNum]
+                
+                for ti in range(minNum):
+                    TrialTimes[i,ti] = times[temp[ti]]
+                    TrialDists[i,ti] = DX[d][k][temp[ti]]
+                
+            dTimes_[d][k] = TrialTimes
+            dDist_[d][k]  = TrialDists
+            
+            'Perform FA on a set of 8 trials.'
+            
+            
+            for j in range(minNum): 
+                tempSV = []
+             
+                set_targ_inds = (TargInds[:,j]).astype(int).tolist()
+                temp = np.concatenate([inds[i] for i in set_targ_inds]).tolist()
+                sc = np.array(dSC[d][k])[temp,:]
+    
+                units_to_drop = dfZERO.loc[dfZERO['d']==date, 'unit'].tolist()
+                sc_fixed = np.delete(sc, units_to_drop, axis=1)
+    
+                
+                '_________________________________________________________________'
+                
+                'Factor Analsysis'
+                
+                """
+                    k-fold cross-validation
+                
+                    OR
+                
+                    90% variance
+                    
+                """            
+                
+                '_________________________________________________________________'
+                
+                if np.any(np.isnan(np.sum(stats.zscore(sc_fixed, axis=0), axis=0))) == 1:
+                    temp_zero = np.where(np.sum(sc_fixed, axis=0) == 0)[0][0]
+                    sc_fixed = np.delete(sc_fixed, temp_zero, axis=1)
+                    print('ZERO ERROR')
+                    
+                sc_preZ[d][k].append(sc_fixed)   
+                
+                X = stats.zscore(sc_fixed, axis=0)
+                X = X[:,:]
+                
+                n_bins  = np.shape(X)[0]
+                n_units = np.shape(X)[1]
+                
+                numBins[d][k].append(n_bins)
+                numUnits[d][k].append(n_units)
+                
+                nf = int(numFactors[d][k][j])
+                total, shared, private, loadings = varianceSharedPrivate_byTrial(X, nf)
+                    
+    
+                dEV[d][k]['total'].append(total)
+                dEV[d][k]['shared'].append(shared)
+                dEV[d][k]['private'].append(private)
+                dEV[d][k]['loadings'].append(loadings)
+            
+                    
+                print(date, k, j)
+            print(date)
+            
+    return(deg_list, dates, dEV, dTimes_, dDist, numUnits, numBins, sc_preZ)  

@@ -115,26 +115,26 @@ def sigSlope(X_,y, alpha, returnSE=False):
     
 '_____________________________________________________________________________'
 
-def cvLDA(dComp, X, y, n_folds, n_repeats):
-    ind = dComp['s_ind']
-    deg = np.abs(dComp['s_degs'])
+# def cvLDA(dComp, X, y, n_folds, n_repeats):
+#     ind = dComp['s_ind']
+#     deg = np.abs(dComp['s_degs'])
     
-    model = LinearDiscriminantAnalysis()
+#     model = LinearDiscriminantAnalysis()
     
-    scoresMODEL   = []
-    scoresCHANCE  = []
+#     scoresMODEL   = []
+#     scoresCHANCE  = []
             
-    for i in range(n_repeats):
+#     for i in range(n_repeats):
     
-        'Model Performance'
-        cv = StratifiedKFold(n_splits=n_folds)
-        scoresTRUE = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1)
+#         'Model Performance'
+#         cv = StratifiedKFold(n_splits=n_folds)
+#         scoresTRUE = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1)
         
-        'Random Chance Performance'
-        y_permuted = np.random.permutation(y)
-        scoresRC = cross_val_score(model, X, y_permuted, scoring='accuracy', cv=cv, n_jobs=-1)
+#         'Random Chance Performance'
+#         y_permuted = np.random.permutation(y)
+#         scoresRC = cross_val_score(model, X, y_permuted, scoring='accuracy', cv=cv, n_jobs=-1)
         
-        scoresMODEL.append(scoresTRUE)
-        scoresCHANCE.append(scoresRC)
+#         scoresMODEL.append(scoresTRUE)
+#         scoresCHANCE.append(scoresRC)
       
-    return(np.concatenate((scoresMODEL)), np.concatenate((scoresCHANCE)))
+#     return(np.concatenate((scoresMODEL)), np.concatenate((scoresCHANCE)))
